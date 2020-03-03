@@ -355,12 +355,12 @@ regions2FASTA <- function(gr, bsgenome=NULL, asm.fasta=NULL, expand=0, fasta.sav
     }
   }
   
-  ## Check if submitted fasta file is indexed
-  asm.fasta.idx <- paste0(asm.fasta, ".fai")
-  if (!file.exists(asm.fasta.idx)) {
-    ptm <- startTimedMessage("Fasta file is not indexed, indexing")
-    fa.idx <- Rsamtools::indexFa(file = asm.fasta)
-    stopTimedMessage(ptm)
+  if (!is.null(asm.fasta)) {	
+    ## Check if submitted fasta file is indexed
+    asm.fasta.idx <- paste0(asm.fasta, ".fai")
+    if (!file.exists(asm.fasta.idx)) {
+      fa.idx <- Rsamtools::indexFa(file = asm.fasta)
+    }
   }
   
   ## Expand regions of interest by certain size (downstream and upstream)
