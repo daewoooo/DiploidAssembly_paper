@@ -1,6 +1,2 @@
 # DiploidAssembly_paper
-R functions under development.
-
-### NOTE
-
-This repository contains unpublished work. To avoid any conflict of interest please consult usage for publication with the author.
+A set of R function used for the analysis of diploid assemblies. [for details see](https://www.biorxiv.org/content/10.1101/855049v1)
