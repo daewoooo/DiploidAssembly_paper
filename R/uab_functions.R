@@ -15,7 +15,7 @@
 bed2ranges <- function(bedfile=NULL, index=NULL, min.align=10000, min.ctg.size=500000, max.gap=100000) {
   bed.df <- utils::read.table(file = bedfile, header = FALSE, stringsAsFactors = FALSE)
   ## Add column names
-  colnames(bed.df) <- c('seqnames','start','end','ctg','mapq','strand')
+  colnames(bed.df) <- c('seqnames','start','end','ctg','mapq','strand')[1:ncol(bed.df)]
   ## Add index if defined
   if (!is.null(index) & is.character(index)) {
     bed.df$ID <- index
