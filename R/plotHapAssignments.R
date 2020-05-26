@@ -18,17 +18,29 @@
 #'
 
 plotHapAssignments <- function(H1.tsv, H2.tsv, genome = 'hg38', chromosomes=NULL, title=NULL) {
+  ## Helper function
+  getPhasingAcc <- function(tsv.file) {
+    df <- read.table(tsv.file)
+    dfl <- split(df, df$V2)
+    dfl.counts <- lapply(dfl, function(x) table(x$V6))
+    dfl.counts <- do.call(rbind, dfl.counts)
+    correct <- pmax(dfl.counts[,1], dfl.counts[,2])
+    incorrect <- pmin(dfl.counts[,1], dfl.counts[,2])
+    result <- data.frame(chr = rownames(dfl.counts), correct = correct, incorrect = incorrect)
+    return(result)
+  }
+  
   ## Load the data
-  H1.tsv <- read.table(H1.tsv, col.names=c('contig','chromosome','position','flags','length','haplotype'))
-  H2.tsv <- read.table(H2.tsv, col.names=c('contig','chromosome','position','flags','length','haplotype'))
+  H1.tsv.df <- read.table(H1.tsv, col.names=c('contig','chromosome','position','flags','length','haplotype'))
+  H2.tsv.df <- read.table(H2.tsv, col.names=c('contig','chromosome','position','flags','length','haplotype'))
   ## Add end positions
-  H1.tsv$end <- with(H1.tsv, position + length - 1)
-  H2.tsv$end <- with(H2.tsv, position + length - 1)
+  H1.tsv.df$end <- with(H1.tsv.df, position + length - 1)
+  H2.tsv.df$end <- with(H2.tsv.df, position + length - 1)
   ## Convert to Genomic ranges
-  H1.gr1 <- makeGRangesFromDataFrame(H1.tsv[H1.tsv$haplotype=="HP:i:1",], seqnames.field='chromosome', start.field='position', end.field='end')
-  H1.gr2 <- makeGRangesFromDataFrame(H1.tsv[H1.tsv$haplotype=="HP:i:2",], seqnames.field='chromosome', start.field='position', end.field='end')
-  H2.gr1 <- makeGRangesFromDataFrame(H2.tsv[H2.tsv$haplotype=="HP:i:1",], seqnames.field='chromosome', start.field='position', end.field='end')
-  H2.gr2 <- makeGRangesFromDataFrame(H2.tsv[H2.tsv$haplotype=="HP:i:2",], seqnames.field='chromosome', start.field='position', end.field='end')
+  H1.gr1 <- makeGRangesFromDataFrame(H1.tsv.df[H1.tsv.df$haplotype=="HP:i:1",], seqnames.field='chromosome', start.field='position', end.field='end')
+  H1.gr2 <- makeGRangesFromDataFrame(H1.tsv.df[H1.tsv.df$haplotype=="HP:i:2",], seqnames.field='chromosome', start.field='position', end.field='end')
+  H2.gr1 <- makeGRangesFromDataFrame(H2.tsv.df[H2.tsv.df$haplotype=="HP:i:1",], seqnames.field='chromosome', start.field='position', end.field='end')
+  H2.gr2 <- makeGRangesFromDataFrame(H2.tsv.df[H2.tsv.df$haplotype=="HP:i:2",], seqnames.field='chromosome', start.field='position', end.field='end')
   H1.gr1$hap <- 'H1'
   H1.gr2$hap <- 'H2'
   H2.gr1$hap <- 'H1'
@@ -74,7 +86,7 @@ plotHapAssignments <- function(H1.tsv, H2.tsv, genome = 'hg38', chromosomes=NULL
   ## Plot the ideogram using ggplot2
   ideo <- ggplot() + 
     geom_rect(data=ideo.df, aes(ymin=start, ymax=end, xmin=0, xmax=1, fill=gieStain), color='black', show.legend=FALSE) + 
-    scale_fill_giemsa() +
+    ggbio::scale_fill_giemsa() +
     facet_grid(. ~ seqnames, switch = 'x') + 
     scale_y_continuous(breaks = breaks, labels = labels) +
     theme_vertical +
@@ -92,12 +104,23 @@ plotHapAssignments <- function(H1.tsv, H2.tsv, genome = 'hg38', chromosomes=NULL
   ## Convert user supplied GRanges object into the data.frame
   plt.df <- as.data.frame(plt.gr)
   plt <- ideo + 
-    new_scale("fill") + 
+    ggnewscale::new_scale("fill") + 
     geom_rect(data=plt.df, aes(ymin=start, ymax=end, xmin=xmin, xmax=xmax, fill=hap)) +
     scale_fill_manual(values = c('deepskyblue', 'gold'), name="")
   
   ## Decrese spacing between facets  
   plt <- plt + theme(panel.spacing.x=unit(0.5, "lines") , panel.spacing.y=unit(1,"lines"))
+  
+  ## Calculate concordance
+  H1.acc <- getPhasingAcc(H1.tsv)
+  H2.acc <- getPhasingAcc(H2.tsv)
+  H1.err <- (sum(H1.acc$incorrect) / (sum(H1.acc$correct) + sum(H1.acc$incorrect))) * 100
+  H2.err <- (sum(H2.acc$incorrect) / (sum(H2.acc$correct) + sum(H2.acc$incorrect))) * 100
+  
+  subtitle <- paste(paste0("Wrongly assigned segments to H1: ", round(H1.err, digits = 3), "%"),
+                    paste0("Wrongly assigned segments to H2: ", round(H2.err, digits = 3), "%"),
+                    sep = '\n')
+  plt <- plt + labs(subtitle = subtitle)
   
   ## Add title
   if (!is.null(title)) {
