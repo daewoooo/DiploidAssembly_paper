@@ -6,19 +6,27 @@
 #'
 #' @param bedfile A BED file of contig alignments to a reference genome.
 #' @param index A unique identifier to be added as an 'ID' field. 
+#' @param min.mapq A minimum mapping quality of alignments reported in submitted BED file.
 #' @param min.align A minimum length of an aligned sequence to a reference genome.
 #' @param min.ctg.size A minimum length a final contig after gaps are collapsed.
 #' @param max.gap A maximum length of a gap within a single contig alignments to be collapsed.
 #' @return A \code{\link{GRanges-class}} object.
 #' @author David Porubsky
 #' 
-bed2ranges <- function(bedfile=NULL, index=NULL, min.align=10000, min.ctg.size=500000, max.gap=100000) {
+bed2ranges <- function(bedfile=NULL, index=NULL, min.mapq=10, min.align=10000, min.ctg.size=500000, max.gap=100000) {
   bed.df <- utils::read.table(file = bedfile, header = FALSE, stringsAsFactors = FALSE)
   ## Add column names
   colnames(bed.df) <- c('seqnames','start','end','ctg','mapq','strand')[1:ncol(bed.df)]
   ## Add index if defined
   if (!is.null(index) & is.character(index)) {
     bed.df$ID <- index
+  }
+  ## Filter by mapping quality
+  if (min.mapq > 0) {
+    bed.df <- bed.df[bed.df$mapq >= min.mapq,]
+  }
+  if (nrow(bed.df) == 0) {
+    stop("None of the BED alignments reach user defined mapping quality (min.mapq) !!!")
   }
   ## Convert data.frame to GRanges object
   bed.gr <- GenomicRanges::makeGRangesFromDataFrame(bed.df, keep.extra.columns = TRUE)
@@ -293,7 +301,7 @@ plotUABgenome <- function(breaks.gr, chromosomes=NULL, bsgenome=NULL, centromere
   chroms2use <- intersect(chromosomes, chroms.in.data)
   breaks.gr <- keepSeqlevels(breaks.gr, value = chroms2use, pruning.mode = 'coarse')
   
-  ## Bin genome into user defined bins
+  ## Get ideogram
   if (!is.null(bsgenome)) {
     seq.len <- seqlengths(bsgenome)[chroms2use]
     ideo.df <- data.frame(seqnames=names(seq.len), length=seq.len)

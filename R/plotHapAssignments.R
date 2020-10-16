@@ -19,8 +19,13 @@
 
 plotHapAssignments <- function(H1.tsv, H2.tsv, genome = 'hg38', chromosomes=NULL, title=NULL) {
   ## Helper function
-  getPhasingAcc <- function(tsv.file) {
+  getPhasingAcc <- function(tsv.file, chromosomes=chromosomes) {
     df <- read.table(tsv.file)
+    if (!is.null(chromosomes)) {
+      ## Filter user defined chromsomes
+      df <- df[df$V2 %in% chromosomes,]
+    }  
+    ## Split by chromosomes
     dfl <- split(df, df$V2)
     dfl.counts <- lapply(dfl, function(x) table(x$V6))
     dfl.counts <- do.call(rbind, dfl.counts)
@@ -112,8 +117,8 @@ plotHapAssignments <- function(H1.tsv, H2.tsv, genome = 'hg38', chromosomes=NULL
   plt <- plt + theme(panel.spacing.x=unit(0.5, "lines") , panel.spacing.y=unit(1,"lines"))
   
   ## Calculate concordance
-  H1.acc <- getPhasingAcc(H1.tsv)
-  H2.acc <- getPhasingAcc(H2.tsv)
+  H1.acc <- getPhasingAcc(H1.tsv, chromosomes = chromosomes)
+  H2.acc <- getPhasingAcc(H2.tsv, chromosomes = chromosomes)
   H1.err <- (sum(H1.acc$incorrect) / (sum(H1.acc$correct) + sum(H1.acc$incorrect))) * 100
   H2.err <- (sum(H2.acc$incorrect) / (sum(H2.acc$correct) + sum(H2.acc$incorrect))) * 100
   
