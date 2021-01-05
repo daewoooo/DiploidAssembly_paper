@@ -390,6 +390,7 @@ regions2FASTA <- function(gr, bsgenome=NULL, asm.fasta=NULL, expand=0, fasta.sav
     gr <- suppressWarnings( subsetByOverlaps(gr, fa.idx) )
     ## Read in contigs for a given cluster
     gr.seq <- Rsamtools::scanFa(file = fa.file, param = gr, as = "DNAStringSet")
+    names(gr.seq) <- as.character(gr)
   } else {
     stop("Please set a 'bsgenome' or 'asm.fasta' parameter!!!")
   }
