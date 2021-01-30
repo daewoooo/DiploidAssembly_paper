@@ -264,13 +264,14 @@ plotContactMatrix <- function(interaction.obj=NULL, genome.coord=TRUE, chromosom
 #' Plot statistics of read-pairs stored in Hi-C BAM file.
 #'
 #' @param read.pairs.stat.obj A \code{data.frame} object containing fragment, orientaton and insert size distribution.
-#' @param h5.file ...
-#' @param chromosomes ... 
+#' @param h5.file Hiearchical data format (HDF5) to where Hi-C read pairs are stored.
 #' @param bsgenome ...
+#' @param index A unique ID to be used as a title for exported plot as well as data table.
+#' @inheritParams bam2contactMatrix
 #' @return A \code{\link[ggplot2:ggplot]{ggplot}} object.
 #' @author David Porubsky
 #' 
-plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, bsgenome=NULL) {
+plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, bsgenome=NULL, index=NULL) {
   ## Load BSgenome object
   if (class(bsgenome) != 'BSgenome') {
     if (is.character(bsgenome)) {
@@ -290,10 +291,10 @@ plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, 
   res.frags <- GenomicRanges::GRanges()
   GenomeInfoDb::seqlevels(res.frags) <- names(chrom.lengths)
   GenomeInfoDb::seqlengths(res.frags) <- chrom.lengths
-
+  
   ## Convert 'res.frags' to object that specify read pair loading parameters
   res.frags.param <- diffHic::pairParam(res.frags)
-
+  
   ## Select only specific user-defined chromosomes
   if (!is.null(chromosomes) & is.character(chromosomes)) {
     if (all(chromosomes %in% GenomeInfoDb::seqlevels(res.frags))) {
@@ -313,14 +314,14 @@ plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, 
   time <- proc.time() - ptm; message(" ",round(time[3],2),"s")
   
   message("Plotting HiC read-pair statistics ...", appendLF=FALSE); ptm <- proc.time()
-
+  
   ## Plot proportion of intra- versus inter-chromosomal links
   inter <- length(stat.data$insert[is.na(stat.data$insert)])
   intra <- length(stat.data$insert[!is.na(stat.data$insert)])
-  plt.df <- data.frame(counts=c(inter, intra), labels=c('inter.chr','intra.chr'))
-  plt.df$link.frac <- (plt.df$counts / sum(plt.df$counts)) * 100
+  plt.df1 <- data.frame(counts=c(inter, intra), labels=c('inter.chr','intra.chr'))
+  plt.df1$link.frac <- (plt.df1$counts / sum(plt.df1$counts)) * 100
   ## Make the plot
-  plt1 <- ggplot2::ggplot(plt.df) + 
+  plt1 <- ggplot2::ggplot(plt.df1) + 
     geom_col(aes(x='HiC interactions', y=link.frac, fill=labels)) +
     scale_fill_manual(values = c('chocolate2', 'chartreuse4'), name="") +
     xlab("") +
@@ -329,18 +330,18 @@ plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, 
   
   ## Plot histogram of insert size distributions
   h.counts <- hist(stat.data$insert, plot = FALSE, breaks = 100)
-  plt.df <- data.frame(counts=h.counts$counts, xpos=h.counts$mids)
+  plt.df2 <- data.frame(counts=h.counts$counts, xpos=h.counts$mids)
   ## Prepare y-axis breaks
-  max.count <- signif(max(plt.df$counts), digits = 2)
+  max.count <- signif(max(plt.df2$counts), digits = 2)
   y.breaks <- 10^(1:12)
   y.breaks <- y.breaks[y.breaks < max.count]
   ## Prepare x-axis breaks
-  max.len <- signif(max(plt.df$xpos), digits = 2)
+  max.len <- signif(max(plt.df2$xpos), digits = 2)
   x.breaks <- seq(from = 0, to = max.len, length.out = 6)
   x.labels <- x.breaks / 1000000
   x.labels <- paste0(x.labels, 'Mbp')
   ## Make the plot
-  plt2 <- ggplot2::ggplot(plt.df) + 
+  plt2 <- ggplot2::ggplot(plt.df2) + 
     geom_col(aes(x=xpos, y=counts)) +
     geom_hline(yintercept = y.breaks, linetype='dashed', color='white') +
     scale_x_continuous(breaks = x.breaks, labels = x.labels, name = "Interaction distance (Mbp)") +
@@ -351,11 +352,11 @@ plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, 
   insert.categs <- findInterval(stat.data$insert, vec = c(1000, 10000, 100000, 1000000, 10000000))
   categ.counts <- as.numeric(table(insert.categs))
   categ.frac <- (categ.counts / sum(categ.counts)) * 100
-  plt.df <- data.frame(counts=categ.counts, frac=categ.frac)
+  plt.df3 <- data.frame(counts=categ.counts, frac=categ.frac)
   labels <- c('<1kbp', '1kbp-10kbp','10kbp-100kbp','100kbp-1000kbp','1000kbp-10000kbp','>10000kbp')
-  plt.df$labels <- factor(labels, levels = labels)
+  plt.df3$labels <- factor(labels, levels = labels)
   ## Make the plot
-  plt3 <- ggplot2::ggplot(plt.df) + 
+  plt3 <- ggplot2::ggplot(plt.df3) + 
     geom_col(aes(x=labels, y=frac)) +
     theme_bw() + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
@@ -364,9 +365,14 @@ plotContactMatrixStat <- function(bamfile=NULL, h5.file=NULL, chromosomes=NULL, 
   
   ## Construct final report
   final.plt <- plot_grid(plt1, plt2, plt3, nrow = 1, rel_widths = c(1.5,4,2), align = 'h')
+  ## Add title if unique index defined
+  if (is.character(index) & nchar(index) > 0) {
+    title <- ggdraw() + draw_label(index, fontface='bold')
+    final.plt <- plot_grid(title, final.plt, ncol=1, rel_heights=c(0.1, 1))
+  }
   
   time <- proc.time() - ptm; message(" ",round(time[3],2),"s")
-  return(final.plt)
+  return( list(stat.plot=final.plt, stat.data=list(plt1.stat=plt.df1, plt2.stat=plt.df2, plt3.stat=plt.df3)) )
 }
 
 
