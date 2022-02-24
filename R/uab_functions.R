@@ -1,8 +1,8 @@
-#' Load a BED file into a \code{\link{GRanges-class}} object.
+#' Load an de novo assembly aligned to the reference in BED file into a \code{\link{GRanges-class}} object.
 #' 
 #' This function will take a BED file of contig alignments to a reference genome and converts them 
 #' into a \code{\link{GRanges-class}} object. This function also aims to collapse single unique contigs
-#' tha are splitted in multipe pieces after the alignment to the reference.
+#' that are aligned in multiple pieces after the alignment to the reference.
 #'
 #' @param bedfile A BED file of contig alignments to a reference genome.
 #' @param index A unique identifier to be added as an 'ID' field. 
@@ -31,13 +31,13 @@ bed2ranges <- function(bedfile=NULL, index=NULL, min.mapq=10, min.align=10000, m
   ## Convert data.frame to GRanges object
   bed.gr <- GenomicRanges::makeGRangesFromDataFrame(bed.df, keep.extra.columns = TRUE)
   ## Ignore strand
-  strand(bed.gr) <- '*'
+  GenomicRanges::strand(bed.gr) <- '*'
   ## Filter out small alignments
   if (min.align > 0) {
     bed.gr <- bed.gr[width(bed.gr) >= min.align]
   }
   ## Split ranges per contig
-  bed.grl <- split(bed.gr, bed.gr$ctg)
+  bed.grl <- GenomicRanges::split(bed.gr, bed.gr$ctg)
   ## Make sure data frame is sorted
   #bed.gr <- GenomicRanges::sort(bed.gr, ignore.strand=TRUE)
   ## Collapse merge splitted continuous alignments of the same contig
