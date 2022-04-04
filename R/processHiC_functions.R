@@ -140,7 +140,7 @@ bam2contactMatrix <- function(bamfile=NULL, outputdirectory=NULL, bsgenome=NULL,
 }
 
 
-#' Plot contact/interation matrix constructed from a Hi-C BAM file.
+#' Plot contact/interaction matrix constructed from a Hi-C BAM file.
 #'
 #' @param interaction.obj A \code{\link{InteractionSet-class}} object with Hi-C interaction counted in specific genomic bin.
 #' @param genome.coord Set to \code{TRUE} if coordinates of each chromosome/scaffold should be transformed into the whole genome space.
@@ -264,7 +264,7 @@ plotContactMatrix <- function(interaction.obj=NULL, genome.coord=TRUE, chromosom
 #' Plot statistics of read-pairs stored in Hi-C BAM file.
 #'
 #' @param read.pairs.stat.obj A \code{data.frame} object containing fragment, orientaton and insert size distribution.
-#' @param h5.file Hiearchical data format (HDF5) to where Hi-C read pairs are stored.
+#' @param h5.file Hierarchical data format (HDF5) to where Hi-C read pairs are stored.
 #' @param bsgenome ...
 #' @param index A unique ID to be used as a title for exported plot as well as data table.
 #' @inheritParams bam2contactMatrix
