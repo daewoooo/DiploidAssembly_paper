@@ -76,6 +76,20 @@ fillGaps <- function(gr, max.gap=100000) {
   return(red.gr)
 }
 
+#' This function will takes in a \code{\link{GRanges-class}} object of alignments of a single contigs to a reference
+#' and reports all gaps among alignments of a single contig.
+#'
+#' @param gr A \code{\link{GRanges-class}} object of regions of a single contigs aligned to a reference.
+#' @return A \code{\link{GRanges-class}} object..
+#' @author David Porubsky
+#' 
+reportGaps <- function(gr) {
+  gr <- GenomeInfoDb::keepSeqlevels(gr, value = as.character(unique(GenomeInfoDb::seqnames(gr))), pruning.mode = 'coarse')
+  gr <- GenomicRanges::sort(gr)
+  gap.gr <- GenomicRanges::gaps(gr, start = min(start(gr)))
+  mcols(gap.gr) <- mcols(gr)[length(gr),]
+  return(gap.gr)
+}
 
 #' Predict universal assembly breaks (UAB's) in a set of de novo assemblies
 #'
